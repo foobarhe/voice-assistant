@@ -15,6 +15,9 @@ import queue
 from langchain.callbacks.base import BaseCallbackHandler, BaseCallbackManager
 import whisper
 from whisper import load_models
+import requests
+import json
+
 
 # Configuration
 whisper_model = load_models.load_model("large-v2") # 加载语音识别模型: 'tiny.en', 'tiny', 'base.en', 'base', 'small.en', 'small', 'medium.en', 'medium', 'large-v1', 'large-v2', 'large'
@@ -106,7 +109,9 @@ class VoiceOutputCallbackHandler(BaseCallbackHandler):
                 self.tts_busy = False
                 continue
             self.tts_busy = True
-            self.text_to_speech(text)
+            # self.text_to_speech(text)
+            self.text_to_speech_vits(text)
+            
             self.speech_queue.task_done()
             if self.speech_queue.empty():
                 self.tts_busy = False
@@ -117,6 +122,44 @@ class VoiceOutputCallbackHandler(BaseCallbackHandler):
         # Implement your text-to-speech logic here
         try:
             subprocess.call(["say", "-r", "200", "-v", "TingTing", text])
+        except Exception as e:
+            print(f"Error in text-to-speech: {e}")
+
+
+    def text_to_speech_vits(self, text):
+        try:
+            # call vits
+            baseUrl = 'http://sdwebui.z2lab.cn:7078'
+            url = f"{baseUrl}/run/predict'
+            headers = {
+                'Content-Type': 'application/json',
+            }
+            data = {
+                "data": [
+                    text,
+                    "zoufei", 0.2, 0.3, 0.3, 1, "ZH", None, "Happy", "Text prompt"
+                ],
+                "event_data": None,
+                "fn_index": 0,
+                "session_hash": "z9kapd1mxvh"
+            }
+            response = requests.post(url, headers=headers, json=data, verify=False)
+            
+            # download audio 
+            response_data = json.loads(response.text)
+            wav_url = f"{baseUrl}/file="+response_data["data"][1]["name"]
+            local_wav_path = "audio.wav"
+            response = requests.get(wav_url, verify=False)
+            if response.status_code == 200:
+                with open(local_wav_path, "wb") as wav_file:
+                    wav_file.write(response.content)
+                print(f"Downloaded WAV file to {local_wav_path}")
+            
+                # Play the downloaded WAV file with afplay
+                subprocess.run(["afplay", local_wav_path])
+            else:
+                print(f"Failed to download WAV file. Status code: {response.status_code}")
+                
         except Exception as e:
             print(f"Error in text-to-speech: {e}")
 
