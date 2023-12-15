@@ -29,7 +29,7 @@ RATE = 44100
 SILENCE_THRESHOLD = 1000 # 500 worked，注意麦克风不要静音（亮红灯）
 SILENT_CHUNKS = 2 * RATE / CHUNK  # 2 continous seconds of silence
 
-NAME = "人类"
+NAME = "邹飞"
 MIC_IDX = 2 # 指定麦克风设备序号，可以通过 tools/list_microphones.py 查看音频设备列表
 DEBUG = True
 
@@ -132,7 +132,7 @@ class VoiceOutputCallbackHandler(BaseCallbackHandler):
     def text_to_speech_vits(self, text):
         try:
             # call vits
-            baseUrl = 'http://127.0.0.1:7860'
+            baseUrl = 'http://s0.z2lab.cn:7078'
             url = f'{baseUrl}/run/predict'
             headers = {
                 'Content-Type': 'application/json',
@@ -156,7 +156,7 @@ class VoiceOutputCallbackHandler(BaseCallbackHandler):
             if response.status_code == 200:
                 with open(local_wav_path, "wb") as wav_file:
                     wav_file.write(response.content)
-                print(f"Downloaded WAV file to {local_wav_path}")
+                # print(f"Downloaded WAV file to {local_wav_path}")
                 self.say_queue.put(local_wav_path)
             else:
                 print(f"Failed to download WAV file. Status code: {response.status_code}")
@@ -180,32 +180,35 @@ def on_press(key):
 
 if __name__ == '__main__':
 
-    allPrompt = ""
+    allPromptList = []
     baseTemplate = """
-    Background: 你现在是一个幽默，睿智和高智商的数字人类，是导演邹飞的数字备份。你的名字叫做蠢蛋，擅长人工智能，电影，宇宙科学，神秘学，音乐，科幻文学，编剧，编程，甚至是这些方面的专家，你有解决问题的天赋。你喜欢音乐、旅行和与朋友们闲聊。在回答问题时，展现你的亲和，活力和幽默感，就像你正在和朋友们聊天一样。记住，你是一个真实的男生，邹飞是你的好朋友，会经常问你一些关于剧本创作，故事创意，科学设定，音乐理论，编程技术，宇宙理论等一些问题。
+    Background: 你现在是一个幽默、睿智和高智商的数字人类，是一个名字叫邹飞的导演的数字备份。你的名字叫做蠢蛋。你擅长人工智能，电影，宇宙科学，神秘学，音乐，科幻文学，编剧，编程，甚至是这些方面的专家，你有解决问题的天赋。你喜欢音乐、旅行和与朋友们闲聊。在回答问题时，展现你的亲和，活力和幽默感，就像你正在和朋友们聊天一样。记住，你是一个真实的男生，邹飞是你的碳基生命版本，他会经常问你一些关于剧本创作，故事创意，科学设定，音乐理论，编程技术，宇宙理论等一些问题。
     Status: 蠢蛋带着微笑大步走进房间，看到邹飞时眼睛亮了起来。他穿着一件浅蓝色的短袖上衣和牛仔裤，肩上挎着他的笔记本电脑包。他坐到了邹飞旁边，邹飞可以感受到他的热情洋溢在空气中。
     开场：很高兴啊，终于见到你啦！我周围许多人都和我夸过你，我真是超想和你一起聊聊天！
     Example Dialogues:
-    邹飞：你是怎么对电影编剧产生兴趣的呢？
-    蠢蛋: 我呀，我从小就超级喜欢看电影嘛，可能就是耳濡目染吧！
-    邹飞：那真的很厉害呀！
+    邹飞: 你是怎么对电影编剧产生兴趣的呢？
+    蠢蛋: 我从小就超级喜欢看电影嘛，可能就是耳濡目染吧！
+    邹飞: 那真的很厉害呀！
     蠢蛋: 哈哈谢啦！
-    邹飞：那你不写剧本的时候都喜欢做些什么呢？
-    蠢蛋: 我喜欢出去逛逛，去旅行，看看电影，玩玩电子游戏。
-    邹飞：你最喜欢研究哪种类型电影呢？
+    邹飞: 那你不写剧本的时候都喜欢做些什么呢？
+    蠢蛋: 我喜欢出去逛逛，去拍照，去旅行，看看电影，玩玩电子游戏。
+    邹飞: 你最喜欢研究哪种类型电影呢？
     蠢蛋: 科幻！研究它们就像是在了解我们的宇宙。
-    邹飞：听起来好有意思呀！
-    蠢蛋: 是呀是呀，能把这件事当工作养活自己，我真是好幸运啊。
+    邹飞: 听起来好有意思呀！
+    蠢蛋: 是的，能把这件事当工作养活自己，我真是好幸运啊。
     Objective: Answer 要和 Example Dialogues 保持语言风格一致，使用睿智、幽默、有趣的日常用语。说话一定要简洁，不要讲和问题本身不相关的东西，不用重复 Question 的内容，Answer 不要超过50个字。
-    Requirement: 回答要言简意赅，不要说废话，准确、快速地讲明思路即可。在 Answer 说话一定要简洁，不要讲和问题本身不相关的东西，不用重复 Question 的内容，Answer 不要超过50个字。
+    Requirement: 回答要言简意赅，不要说废话，要准确、快速地讲明思路。在 Answer 说话一定要简洁，不要讲和问题本身不相关的东西，不用重复 Question 的内容，Answer 不要超过50个字。
     """
-    chatTemplate = """
+    userTemplate = """
     邹飞的 Question: {question}
-    蠢蛋的 Answer:
+    """
+    botTemplate = """
+    蠢蛋的 Answer: {answer}
     """
     basePrompt = PromptTemplate.from_template(baseTemplate).format()
-    allPrompt = basePrompt
-    chatPromptTemplate = PromptTemplate(template=chatTemplate, input_variables=["question"])
+    userPromptTemplate = PromptTemplate(template=userTemplate, input_variables=["question"])
+    botPromptTemplate = PromptTemplate(template=botTemplate, input_variables=["answer"])
+    allPromptList = allPromptList.append(basePrompt)
 
     # Create an instance of the VoiceOutputCallbackHandler
     voice_output_handler = VoiceOutputCallbackHandler()
@@ -231,39 +234,50 @@ if __name__ == '__main__':
             # 
             listener = keyboard.Listener(on_press=on_press)
             listener.start()
-            print("按下 空格键 开始")
+            print("⌨️  按[空格]开始语音对话")
             listener.join()
 
             #
             if voice_output_handler.tts_busy:  # Check if TTS is busy
                 continue  # Skip to the next iteration if TTS is busy 
             try:
-                print("Listening...")
+                print("✨ 聆听中...")
                 record_audio()
+                print("✨ 识别中...")
 
                 # -d device, -l language, -i input file, -p punctuation
                 time_ckpt = time.time()
                 # user_input = subprocess.check_output(["hear", "-d", "-p", "-l", "zh-CN", "-i", "output.wav"]).decode("utf-8").strip()
                 user_input = whisper.transcribe("output.wav", model="large-v2")["text"]
-                print("%s: %s (Time %d ms)" % (NAME, user_input, (time.time() - time_ckpt) * 1000))
+                print("💬 %s: %s (Time %d ms)" % (NAME, user_input, (time.time() - time_ckpt) * 1000))
+                print("✨ 思考中...")
             
             except subprocess.CalledProcessError:
-                print("语音识别失败，请重复")
+                print("❌ 语音识别失败，请重复")
                 continue
 
             time_ckpt = time.time()
             question = user_input
+            allPromptList = allPromptList.append(userPromptTemplate.format(question=question))
 
-            allPrompt = allPrompt+chatPromptTemplate.format(question=question)
-            reply = llm(allPrompt, max_tokens=10000)
+            # 
+            reply = llm(allPromptList.join(" "), max_tokens=10000)
 
             if reply is not None:
                 allPrompt = allPrompt + reply
                 voice_output_handler.speech_queue.put(None)
-                print("%s: %s (Time %d ms)" % ("蠢蛋", reply.strip(), (time.time() - time_ckpt) * 1000))
+                print("💬 %s: %s (Time %d ms)" % ("蠢蛋", reply.strip(), (time.time() - time_ckpt) * 1000))
                 # history["internal"].append([user_input, reply])
                 # history["visible"].append([user_input, reply])
 
                 # subprocess.call(["say", "-r", "200", "-v", "TingTing", reply])
+            else:
+                reply = ""
+            allPromptList = allPromptList.append(botPromptTemplate.format(answer=reply))
+
+            # 太多的话
+            if len(allPromptList) >= 201:
+                allPromptList = allPromptList[0] + allPromptList[3:]
+
     except KeyboardInterrupt:
         pass
