@@ -17,6 +17,7 @@ import whisper
 from whisper import load_models
 import requests
 import json
+from pynput import keyboard
 
 
 # Configuration
@@ -164,6 +165,11 @@ class VoiceOutputCallbackHandler(BaseCallbackHandler):
             print(f"Error in text-to-speech: {e}")
 
 
+from pynput import keyboard
+def on_press(key):
+    if key == keyboard.Key.space:
+        return False
+
 if __name__ == '__main__':
 
     template = """
@@ -214,6 +220,12 @@ if __name__ == '__main__':
             if voice_output_handler.tts_busy:  # Check if TTS is busy
                 continue  # Skip to the next iteration if TTS is busy 
             try:
+                listener = keyboard.Listener(on_press=on_press)
+                listener.start()
+                print("按下 空格键 开始")
+                listener.join()
+
+                
                 print("Listening...")
                 record_audio()
 
